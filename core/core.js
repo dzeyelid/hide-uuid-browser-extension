@@ -1,0 +1,1 @@
+const MESSAGE_TYPE_SHOULD_RELOAD_SETTINGS = 'shouldReloadSettings';
