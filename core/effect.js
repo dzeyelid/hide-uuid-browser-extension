@@ -4,7 +4,6 @@ setUUIDElementsBlur = (maxCount = 80, delayMillseconds = 20) => {
   return new Promise((resolve, reject) => {
     let count = 0;
     const intervalId = window.setInterval(() => {
-      console.log(`count: ${count}`);
       if (maxCount <= count++) {
         window.clearInterval(intervalId);
         reject(`The trial count exceeds the limit(${maxCount}).`);
@@ -21,7 +20,7 @@ setUUIDElementsBlur = (maxCount = 80, delayMillseconds = 20) => {
           }
         }
         if (found) {
-          console.log('Found');
+          console.log('Found uuid.');
           window.clearInterval(intervalId);
           resolve();
         }
