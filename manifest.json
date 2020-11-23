@@ -28,6 +28,7 @@
   "permissions": [
     "activeTab",
     "declarativeContent",
-    "storage"
+    "storage",
+    "https://*/*"
   ]
 }

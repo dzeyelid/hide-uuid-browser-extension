@@ -12,7 +12,7 @@ function applyCurrentSettings() {
 function setListener() {
   let button = document.getElementById('saveTargetDomains');
   button.addEventListener('click', () => {
-    const targetDomainsCSV = document.getElementById('targetDomains').value.split(' ').join('');
+    const targetDomainsCSV = document.getElementById('targetDomains').value.split(/[\t\r\n\s]/).join('');
     const targetDomains = targetDomainsCSV.split(',');
     chrome.storage.sync.set({targetDomains, targetDomains}, () => {
       chrome.runtime.sendMessage({type: MESSAGE_TYPE_SHOULD_RELOAD_SETTINGS});
