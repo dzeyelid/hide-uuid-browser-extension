@@ -6,43 +6,44 @@ const setIcon = new chrome.declarativeContent.SetIcon({path: {
   32: "images/32x32.png"
 }});
 
-function loadTargetDomains(permissions = {}) {
-  let conditions = [];
-  permissions.origins.forEach((origin) => {
-    const matches = origin.match(/https*:\/\/([^\/]+).*/);
-    if (matches) {
-      conditions.push(
-        new chrome.declarativeContent.PageStateMatcher({
-          pageUrl: {
-            hostEquals: matches[1],
-          },
-        }),
-      );  
-    }
-  });
+function loadTargetDomains() {
+  chrome.permissions.getAll((permissions) => {
+    let conditions = [];
+    permissions.origins.forEach((origin) => {
+      const matches = origin.match(/.*:\/\/(\*\.)*([^\/]+).*/);
+      if (matches) {
+        const host = 2 < matches.length ? matches[2] : matches[1];
+        conditions.push(
+          new chrome.declarativeContent.PageStateMatcher({
+            pageUrl: {
+              hostSuffix: host,
+            },
+          }),
+        );  
+      }
+    });
 
-  chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
-    chrome.declarativeContent.onPageChanged.addRules([{
-      conditions,
-      actions: [
-        setIcon,
-      ],
-    }]);
+    chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
+      chrome.declarativeContent.onPageChanged.addRules([{
+        conditions,
+        actions: [
+          setIcon,
+        ],
+      }]);
+    });
   });
 }
 
 chrome.permissions.onAdded.addListener((permissions) => {
-  loadTargetDomains(permissions);
+  loadTargetDomains();
 });
 
 chrome.permissions.onRemoved.addListener((permissions) => {
-  loadTargetDomains(permissions);
+  loadTargetDomains();
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.permissions.getAll((permissions) => {
-    loadTargetDomains(permissions);
-  });
+  loadTargetDomains();
 });
 
 chrome.webNavigation.onCompleted.addListener((details) => {
@@ -50,6 +51,7 @@ chrome.webNavigation.onCompleted.addListener((details) => {
   if (!matches) {
     return;
   }
+
   chrome.permissions.contains({origins: [`${matches[1]}/*`]},
     (enabled) => {
       if (enabled) {
