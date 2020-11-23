@@ -6,49 +6,58 @@ const setIcon = new chrome.declarativeContent.SetIcon({path: {
   32: "images/32x32.png"
 }});
 
-function loadTargetDomains() {
-  chrome.storage.sync.get('targetDomains', (data) => {
-    if (!data || !data.hasOwnProperty('targetDomains')) {
-      chrome.storage.sync.set({targetDomains: []});
-      return;
-    }
-
-    let targetDomains = [];
-    Array.prototype.push.apply(targetDomains, data.targetDomains);
-    let conditions = [];
-    targetDomains.forEach(domain => {
+function loadTargetDomains(permissions = {}) {
+  let conditions = [];
+  permissions.origins.forEach((origin) => {
+    const matches = origin.match(/https*:\/\/([^\/]+).*/);
+    if (matches) {
       conditions.push(
         new chrome.declarativeContent.PageStateMatcher({
           pageUrl: {
-            hostEquals: domain,
+            hostEquals: matches[1],
           },
         }),
-      );
-    });
+      );  
+    }
+  });
 
-    chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
-      chrome.declarativeContent.onPageChanged.addRules([{
-        conditions,
-        actions: [
-          new chrome.declarativeContent.ShowPageAction(),
-          setIcon,
-          new chrome.declarativeContent.RequestContentScript({
-            js: [
-              'core/effect.js',
-            ],
-          }),
-        ],
-      }]);
-    });
+  chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
+    chrome.declarativeContent.onPageChanged.addRules([{
+      conditions,
+      actions: [
+        setIcon,
+      ],
+    }]);
   });
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type == MESSAGE_TYPE_SHOULD_RELOAD_SETTINGS) {
-    loadTargetDomains();
-  }
+chrome.permissions.onAdded.addListener((permissions) => {
+  loadTargetDomains(permissions);
+});
+
+chrome.permissions.onRemoved.addListener((permissions) => {
+  loadTargetDomains(permissions);
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  loadTargetDomains();
+  chrome.permissions.getAll((permissions) => {
+    loadTargetDomains(permissions);
+  });
+});
+
+chrome.webNavigation.onCompleted.addListener((details) => {
+  const matches = details.url.match(/(https*:\/\/[^\/]+).*/);
+  if (!matches) {
+    return;
+  }
+  chrome.permissions.contains({origins: [`${matches[1]}/*`]},
+    (enabled) => {
+      if (enabled) {
+        chrome.tabs.executeScript(details.tabId, {
+          file: 'core/effect.js',
+          runAt: 'document_end',
+        });
+      }
+    }
+  );
 });

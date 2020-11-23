@@ -3,7 +3,7 @@
   "name": "Hide uuid",
   "version": "0.0.1",
   "description": "Find uuid and hide in pages of specified URL",
-  "page_action": {
+  "browser_action": {
     "default_icon": {
       "16": "images/16x16_disabled.png",
       "24": "images/24x24_disabled.png",
@@ -13,7 +13,6 @@
   "background": {
     "persistent": false,
     "scripts": [
-      "core/core.js",
       "background.js"
     ]
   },
@@ -22,13 +21,11 @@
     "48": "images/48x48.png",
     "128": "images/128x128.png"
   },
-  "options_ui": {
-    "page": "options/options.html"
-  },
   "permissions": [
     "activeTab",
     "declarativeContent",
     "storage",
+    "webNavigation",
     "https://*/*"
   ]
 }
