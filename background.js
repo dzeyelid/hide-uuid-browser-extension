@@ -10,17 +10,13 @@ function loadTargetDomains() {
   chrome.permissions.getAll((permissions) => {
     let conditions = [];
     permissions.origins.forEach((origin) => {
-      const matches = origin.match(/.*:\/\/(\*\.)*([^\/]+).*/);
-      if (matches) {
-        const host = 2 < matches.length ? matches[2] : matches[1];
-        conditions.push(
-          new chrome.declarativeContent.PageStateMatcher({
-            pageUrl: {
-              hostSuffix: host,
-            },
-          }),
-        );  
-      }
+      conditions.push(
+        new chrome.declarativeContent.PageStateMatcher({
+          pageUrl: {
+            originAndPathMatches: origin,
+          },
+        }),
+      );
     });
 
     chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
@@ -30,6 +26,26 @@ function loadTargetDomains() {
           setIcon,
         ],
       }]);
+    });
+
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      if (changeInfo.status == 'complete' && tab.url) {
+        const matches = tab.url.match(/(https*:\/\/[^\/]+).*/);
+        if (!matches) {
+          return;
+        }
+        chrome.permissions.contains(
+          {origins: [`${matches[1]}/*`]},
+          (enabled) => {
+            if (enabled) {
+              chrome.tabs.executeScript(tabId, {
+                file: 'core/effect.js',
+                runAt: 'document_end',
+              });
+            }
+          }
+        );
+      }
     });
   });
 }
@@ -44,22 +60,4 @@ chrome.permissions.onRemoved.addListener((permissions) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   loadTargetDomains();
-});
-
-chrome.webNavigation.onCompleted.addListener((details) => {
-  const matches = details.url.match(/(https*:\/\/[^\/]+).*/);
-  if (!matches) {
-    return;
-  }
-
-  chrome.permissions.contains({origins: [`${matches[1]}/*`]},
-    (enabled) => {
-      if (enabled) {
-        chrome.tabs.executeScript(details.tabId, {
-          file: 'core/effect.js',
-          runAt: 'document_end',
-        });
-      }
-    }
-  );
 });
